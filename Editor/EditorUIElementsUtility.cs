@@ -1,20 +1,18 @@
+using Codice.Client.Common;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using Unity;
+using Unity.Editor;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Unity.Editor;
-using Unity;
+using UnityEngine.UIElements.Extension;
 
 namespace UnityEditor.UIElements.Extension
 {
-    public class EditorUIUtility : EditorUIElementsUtility
-    {
-    }
-
     public class EditorUIElementsUtility
     {
         private static Dictionary<Type, Type> inputFieldTypes;
@@ -240,6 +238,175 @@ namespace UnityEditor.UIElements.Extension
                 yield return (inputField, field);
             }
         }
+
+
+        private static Dictionary<Type, Type> typeMapViewTypes;
+        private static List<InputViewMetadata> inputViewMetadatas;
+        class InputViewMetadata
+        {
+            public Type ValueType;
+            public Type ViewType;
+            public bool IncludeChildren;
+        }
+
+        public static Type GetInputViewType(Type valueType)
+        {
+            Type viewType = null;
+            if (typeMapViewTypes == null)
+            {
+                typeMapViewTypes = new();
+                inputViewMetadatas = new();
+                foreach (var type in TypeCache.GetTypesWithAttribute(typeof(CustomInputViewAttribute)))
+                {
+                    if (!type.IsClass || type.IsAbstract)
+                        continue;
+                    if (!typeof(InputView).IsAssignableFrom(type))
+                    {
+                        Debug.LogError($"{nameof(CustomInputViewAttribute)} Type '{type.Name}' not interit '{typeof(InputView).Name}'");
+                        continue;
+                    }
+                    var viewAttr = type.GetCustomAttribute<CustomInputViewAttribute>();
+                    var targetType = viewAttr.TargetType;
+                    if (targetType == null) continue;
+                    InputViewMetadata metadata = new();
+                    metadata.ViewType = type;
+                    metadata.ValueType = targetType;
+                    metadata.IncludeChildren = true;
+                    inputViewMetadatas.Add(metadata);
+
+                    if (!metadata.ViewType.IsAbstract)
+                    {
+                        typeMapViewTypes[targetType] = type;
+                    }
+                }
+            }
+
+            if (typeMapViewTypes.TryGetValue(valueType, out viewType))
+                return viewType;
+
+            if (BaseInputView.IsBaseField(valueType))
+            {
+                viewType = typeof(BaseInputView);
+                typeMapViewTypes[valueType] = viewType;
+                return viewType;
+            }
+
+            if (valueType.IsEnum)
+            {
+                if (typeMapViewTypes.TryGetValue(typeof(Enum), out viewType))
+                {
+                    typeMapViewTypes[valueType] = viewType;
+                }
+                return viewType;
+            }
+
+            foreach (var metadata in inputViewMetadatas)
+            {
+                if (metadata.IncludeChildren && metadata.ValueType.IsAssignableFrom(valueType))
+                {
+                    viewType = metadata.ViewType;
+                    typeMapViewTypes[valueType] = viewType;
+                    break;
+                }
+
+                if (metadata.ValueType.IsGenericTypeDefinition)
+                {
+                    if (valueType.IsGenericType && valueType.GetGenericTypeDefinition() == metadata.ValueType)
+                    {
+
+                        viewType = metadata.ViewType;
+                        typeMapViewTypes[valueType] = viewType;
+                        break;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        public static InputView CreateInputView(Type valueType)
+        {
+            Type viewType = GetInputViewType(valueType);
+            if (viewType == null)
+                return null;
+            InputView view = Activator.CreateInstance(viewType) as InputView;
+            if (view == null)
+                return null;
+            view.ValueType = valueType;
+            return view;
+        }
+
+        public static List<MemberField> CreateMemberInputFields(CreateMemberInputOptions options)
+        {
+            List<InputFieldMetadata> memberMetdatas = new();
+            List<MemberField> memberFields = new List<MemberField>();
+
+            GroupBox groupBox = null;
+
+            foreach (var metadata in InputFieldMetadata.GetMembers(options.target.GetType()))
+            {
+                if (metadata.IsHidden.HasValue && metadata.IsHidden.Value)
+                {
+                    continue;
+                }
+
+                if (options.filter != null && !options.filter(metadata))
+                    continue;
+
+
+                memberMetdatas.Add(metadata);
+
+                if (!string.IsNullOrEmpty(metadata.GroupTitle))
+                {
+                    groupBox = new GroupBox();
+                    groupBox.AddToClassList("setting-group");
+                    groupBox.text = metadata.GroupTitle;
+                    options.parent.Add(groupBox);
+                    //Label headerLabel = new Label();
+                    //headerLabel.AddToClassList("setting-group__title");
+                    //headerLabel.text=member.GroupTitle;
+                    //options.parent.Add(headerLabel);
+                }
+
+                if (options.CreateFieldBefore != null)
+                {
+                    if (!options.CreateFieldBefore(metadata))
+                        continue;
+                }
+                var field = metadata.CreateInputField(options.target);
+                var inputView = field.View;
+                if (inputView != null)
+                {
+                    inputView.name = metadata.Name;
+                    //inputView.AddToClassList(GetSettingFieldMemberClassName(member));
+                    if (groupBox != null)
+                    {
+                        groupBox.contentContainer.Add(inputView);
+                    }
+                    else
+                    {
+                        options.parent.Add(inputView);
+                    }
+                    options.CreateFieldAfter?.Invoke(metadata, inputView);
+                    memberFields.Add(field);
+                }
+            }
+            return memberFields;
+        }
+    }
+
+    public class EditorUIUtility : EditorUIElementsUtility
+    {
+    }
+    public class CreateMemberInputOptions
+    {
+        public VisualElement parent;
+        public object target;
+        public Func<InputFieldMetadata, bool> filter;
+
+        public Func<InputFieldMetadata, bool> CreateFieldBefore;
+        public Action<InputFieldMetadata, VisualElement> CreateFieldAfter;
+
 
     }
 }

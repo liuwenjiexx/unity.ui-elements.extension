@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
 using Unity;
-using Unity.Bindings;
+using Bindings;
 
 namespace UnityEditor.UIElements.Extension
 {

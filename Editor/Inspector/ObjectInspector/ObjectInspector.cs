@@ -6,7 +6,7 @@ using System.Reflection;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
-using Unity.Bindings;
+using Bindings;
 using Unity.Editor;
 using Unity;
 

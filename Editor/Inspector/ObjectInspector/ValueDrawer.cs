@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine.UIElements;
-using Unity.Bindings;
+using Bindings;
 using Unity;
 
 namespace UnityEditor.UIElements.Extension

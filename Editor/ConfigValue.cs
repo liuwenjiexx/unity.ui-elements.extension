@@ -1,6 +1,6 @@
 using System;
 using UnityEngine;
-using Unity.Bindings;
+using Bindings;
 
 namespace Unity
 {

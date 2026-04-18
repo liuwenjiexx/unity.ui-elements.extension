@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine.UIElements;
-using Unity.Bindings;
+using Bindings;
 using Unity;
 
 namespace UnityEditor.UIElements.Extension

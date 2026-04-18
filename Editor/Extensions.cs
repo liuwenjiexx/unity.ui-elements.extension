@@ -217,9 +217,9 @@ namespace UnityEditor.UIElements.Extension
         /// <summary>
         /// 非泛型版本
         /// </summary>
-        public static void RegisterValueChangeCallback(this VisualElement target, Action<IChangeEvent, object> onChanged)
+        public static bool RegisterValueChangeCallback(this VisualElement target, Action<IChangeEvent, object> onChanged)
         {
-            InvokeNotifyValueChangedMethod(ref NotifyValueChanged_RegisterValueChangeCallbackMethod, nameof(_RegisterValueChangeCallback), target, new object[] { target, onChanged }, out var ret);
+          return  InvokeNotifyValueChangedMethod(ref NotifyValueChanged_RegisterValueChangeCallbackMethod, nameof(_RegisterValueChangeCallback), target, new object[] { target, onChanged }, out var ret);
         }
 
         static void _RegisterValueChangeCallback<T>(INotifyValueChanged<T> target, Action<IChangeEvent, object> onChanged)

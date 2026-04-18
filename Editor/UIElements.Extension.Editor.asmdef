@@ -2,8 +2,8 @@
     "name": "UIElements.Extension.Editor",
     "rootNamespace": "",
     "references": [
-        "GUID:ccc90c7f74c90d24885debac82b0c123",
-        "GUID:49b7ae4994c515a47a1f1e63f63716c3"
+        "GUID:49b7ae4994c515a47a1f1e63f63716c3",
+        "GUID:850b9ef388edbb4469e964731f1e1826"
     ],
     "includePlatforms": [
         "Editor"
